@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
-from ml.ml.data_preprocessing import filter_clubs_by_min_matches
+from ml.ml.data_preprocessing import filter_clubs_by_min_matches, calculate_weights
 
 
 def load_data(file_path: str = r'data\archive\games.csv') -> pd.DataFrame:
@@ -36,9 +36,26 @@ def load_data(file_path: str = r'data\archive\games.csv') -> pd.DataFrame:
 def main():
     df = load_data()
 
-    df = df[["home_club_name", "away_club_name", "home_club_goals", "away_club_goals", "game_id"]]
+    df = df[
+        [
+            "season",
+            "home_club_name",
+            "away_club_name",
+            "home_club_goals",
+            "away_club_goals",
+            "game_id"
+        ]
+    ]
 
-    df = filter_clubs_by_min_matches(df, "game_id", 'home_club_name', 'away_club_name', threshold=50)
+    df = filter_clubs_by_min_matches(
+        df,
+        "game_id",
+        'home_club_name',
+        'away_club_name',
+        threshold=150
+    )
+
+    weights = calculate_weights(df, alpha=.2)
 
     encoder = OneHotEncoder()
     encoded_clubs = encoder.fit_transform(df[['home_club_name', 'away_club_name']]).toarray()
@@ -49,7 +66,7 @@ def main():
     df = pd.concat([df, encoded_df], axis=1)
     df[df["home_club_goals"].isna()].to_csv("test.csv")
 
-    df = df.drop(columns=['home_club_name', 'away_club_name', 'game_id'])
+    df = df.drop(columns=['home_club_name', 'away_club_name', 'game_id', "season"])
 
     # Features and target variables
     X = df.drop(columns=['home_club_goals', 'away_club_goals'])
@@ -57,17 +74,17 @@ def main():
     y_away = df['away_club_goals']
 
     # Split the data into training and testing sets
-    X_train, X_test, y_home_train, y_home_test, y_away_train, y_away_test = train_test_split(
-        X, y_home, y_away, test_size=0.2, random_state=42
+    X_train, X_test, y_home_train, y_home_test, y_away_train, y_away_test, w_train, w_test = train_test_split(
+        X, y_home, y_away, weights, test_size=0.2, random_state=42
     )
 
     # Initialize and train the model for home goals
     home_model = RandomForestRegressor(random_state=42)
-    home_model.fit(X_train, y_home_train)
+    home_model.fit(X_train, y_home_train, sample_weight=w_train)
 
     # Initialize and train the model for away goals
     away_model = RandomForestRegressor(random_state=42)
-    away_model.fit(X_train, y_away_train)
+    away_model.fit(X_train, y_away_train, sample_weight=w_train)
 
     # Predict on the test set
     y_home_pred = home_model.predict(X_test)
@@ -82,8 +99,8 @@ def main():
 
     # Example input for prediction
     input_data = {
-        'home_club_name': ['FC Barcelona'],
-        'away_club_name': ['Real Madrid']
+        'home_club_name': ['Real Madrid'],
+        'away_club_name': ['FC Barcelona']
     }
 
     # Convert input data to DataFrame
@@ -96,9 +113,9 @@ def main():
     # Predict the goals
     home_goals_pred = home_model.predict(encoded_input_df)
     away_goals_pred = away_model.predict(encoded_input_df)
-
-    print(f'Predicted Home Goals: {home_goals_pred[0]}')
-    print(f'Predicted Away Goals: {away_goals_pred[0]}')
+    print(f"{home_goals_pred = }")
+    print(f'Predicted {input_data['home_club_name'][0]}: {home_goals_pred[0]}')
+    print(f'Predicted {input_data['away_club_name'][0]}: {away_goals_pred[0]}')
 
 
 if __name__ == "__main__":

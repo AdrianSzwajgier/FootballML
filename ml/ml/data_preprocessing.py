@@ -1,6 +1,7 @@
 """
 This module includes functions for preprocessing data.
 """
+import numpy as np
 import pandas as pd
 
 from ml.ml.logger import logger
@@ -66,4 +67,18 @@ def filter_clubs_by_min_matches(
     )
 
     return filtered_df.reset_index(drop=True)
+
+
+def calculate_weights(df, alpha=0.1):
+    """
+    Applies exponential decay to the weights of older data points.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing match data.
+        alpha (float): The exponential decay factor.
+
+    Returns:
+        pd.Series: The weights of data points.
+    """
+    return np.exp(-alpha * (2024 - df["season"]))
 

@@ -1,8 +1,10 @@
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from ml.ml.data_preprocessing import filter_clubs_by_min_matches
+from ml.ml.data_preprocessing import filter_clubs_by_min_matches, calculate_weights
 
 
 @pytest.fixture(name="sample_data")
@@ -35,3 +37,10 @@ def test_filter_clubs_by_min_matches(sample_data):
     assert filtered_df.columns.equals(sample_data.columns)
     assert not filtered_df["h_name"].isin(names_to_remove).any()
     assert not filtered_df.empty
+
+
+@patch("numpy.exp")
+def test_calculate_weights(mock_np):
+    df = pd.DataFrame({"season": [2021, 2022, 2023, 2024]})
+    calculate_weights(df, alpha=0.2)
+    mock_np.assert_called_once()
