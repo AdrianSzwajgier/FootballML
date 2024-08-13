@@ -1,5 +1,3 @@
-import os
-import sqlite3
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
@@ -7,7 +5,11 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
-from ml.ml.data_preprocessing import filter_clubs_by_min_matches, calculate_weights
+from ml.ml.data_preprocessing import (
+    filter_clubs_by_min_matches,
+    calculate_weights, encode_features
+)
+from ml.ml.utils import load_configuration
 
 
 def load_data(file_path: str = r'data\archive\games.csv') -> pd.DataFrame:
@@ -36,6 +38,8 @@ def load_data(file_path: str = r'data\archive\games.csv') -> pd.DataFrame:
 def main():
     df = load_data()
 
+    config = load_configuration()
+
     df = df[
         [
             "season",
@@ -52,19 +56,17 @@ def main():
         "game_id",
         'home_club_name',
         'away_club_name',
-        threshold=150
+        threshold=config["min_matches_played"]
     )
 
-    weights = calculate_weights(df, alpha=.2)
+    weights = calculate_weights(df, alpha=config["decay_factor"])
 
     encoder = OneHotEncoder()
-    encoded_clubs = encoder.fit_transform(df[['home_club_name', 'away_club_name']]).toarray()
-    encoded_club_names = encoder.get_feature_names_out(['home_club_name', 'away_club_name'])
-
-    encoded_df = pd.DataFrame(encoded_clubs, columns=encoded_club_names)
-
-    df = pd.concat([df, encoded_df], axis=1)
-    df[df["home_club_goals"].isna()].to_csv("test.csv")
+    df, encoded_club_names = encode_features(
+        encoder,
+        df,
+        config["categorical_features"]
+    )
 
     df = df.drop(columns=['home_club_name', 'away_club_name', 'game_id', "season"])
 

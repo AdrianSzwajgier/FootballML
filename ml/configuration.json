@@ -1,0 +1,5 @@
+{
+  "categorical_features": ["home_club_name", "away_club_name"],
+  "min_matches_played": 340,
+  "decay_factor": 0.2
+}

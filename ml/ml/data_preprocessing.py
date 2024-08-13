@@ -1,8 +1,11 @@
 """
 This module includes functions for preprocessing data.
 """
+from typing import Any
+
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 
 from ml.ml.logger import logger
 
@@ -81,4 +84,27 @@ def calculate_weights(df, alpha=0.1):
         pd.Series: The weights of data points.
     """
     return np.exp(-alpha * (2024 - df["season"]))
+
+
+def encode_features(
+        encoder: Any,
+        df: pd.DataFrame,
+        features
+) -> (pd.DataFrame, list):
+    """
+    Encodes categorical features using OneHotEncoder.
+
+    Args:
+        encoder (Any): object used to encode categorical features.
+        df (pd.DataFrame): The input DataFrame containing match data.
+        features (list): A list of features to encode.
+
+    Returns:
+        pd.DataFrame: The encoded DataFrame.
+    """
+    encoded_clubs = encoder.fit_transform(df[features]).toarray()
+    encoded_club_names = encoder.get_feature_names_out(features)
+    encoded_df = pd.DataFrame(encoded_clubs, columns=encoded_club_names)
+
+    return pd.concat([df, encoded_df], axis=1), encoded_club_names
 
