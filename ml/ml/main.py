@@ -101,8 +101,8 @@ def main():
 
     # Example input for prediction
     input_data = {
-        'home_club_name': ['Real Madrid'],
-        'away_club_name': ['FC Barcelona']
+        'home_club_name': [config["pred_home_club_name"]],
+        'away_club_name': [config["pred_away_club_name"]]
     }
 
     # Convert input data to DataFrame
